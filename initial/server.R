@@ -46,16 +46,16 @@ shinyServer(function(input, output, session) {
   observeEvent(input$clearOmission, {
     #reset the table back to pre omission state
     currentOmission <<- updateSelectizeInput(session, 'tableFilter', choices = omitAllCodesFix$breeder_cross_code)
-    dat <<- omitAllCodesFix
+    dat <- omitAllCodesFix
     #now can run the main program
-    # meatAndBeans(dat)
+    meatAndBeans(dat)
   })
   
   observeEvent(input$tableFilter, {
     #at any point where your total number of omissions don't match the count of rows in the table you use
     if(length(input$tableFilter) != rowCount){
       #keep omitting rows
-      dat <<- subset(dat, !(breeder_cross_code %in% input$tableFilter))
+      dat <- subset(dat, !(breeder_cross_code %in% input$tableFilter))
     }
     else{
       #reset the table back to pre omission state
@@ -63,15 +63,124 @@ shinyServer(function(input, output, session) {
       currentOmission <<- updateSelectizeInput(session, 'tableFilter', choices = dat$breeder_cross_code)
     }
     #run the main program again
-    # meatAndBeans(dat)
+    meatAndBeans(dat)
     return(input$tableFilter)
   })
+  
+  cleanFile <- function(dat){
+    #grab the columns that matter for our analysis
+    testParents <- mutate(select(dat, breeder_cross_code, Concept, data_type, harvest_dm), MotherCode = '', FatherCode = '')
+    #logging the special features of all the various formats of brcrcodes, needed for formatting them in the correct way for output
+    slashCount <- str_count(testParents$breeder_cross_code, '/')
+    underscoreCount <- str_count(testParents$breeder_cross_code, '_')
+    spaceCheck <- str_count(testParents$breeder_cross_code, ' ')
+    testParents <- cleanBrCrCodeInFile(testParents, slashCount, underscoreCount, spaceCheck)
+    #we must make these columns contents as numeric, otherwise we cannot perform math on them
+    testParents$harvest_dm <- as.numeric(testParents$harvest_dm)
+    return(testParents)
+  }
+  
+  cleanbreeder_cross_codeInFile <- function(x, slashCount, underscoreCount, spaceCheck){
+    #for all the rows in our table
+    for(i in 1:(dim(x)[1])){
+      #if the breeder_cross_code is formatted like this (eg. ZI 343)
+      if(spaceCheck[i]==1){
+        #we drop the space, will be picked up by underscorecount later on
+        x$breeder_cross_code[i] <- gsub(" ", "", x$breeder_cross_code[i])
+      }
+      #if the breeder_cross_code is formatted like this (eg. cyb_476/1)
+      if(slashCount[i]==1) {
+        if(underscoreCount[i]==1){
+          #if the number of characters after the forward slash is three (eg. rjr_441/434)
+          if(nchar(unlist(strsplit(x$breeder_cross_code[i], split = '/', fixed=TRUE))[2]) == 3){
+            #ignore that type of code, it's valid in this instance
+            next 
+          }
+          else{
+            #strip anything after the forward slash away
+            x$MotherCode[i] <- unlist(strsplit(x$breeder_cross_code[i], split = '/', fixed=TRUE))[1]
+            #set to the breeder_cross_code, it's formatted now
+            x$breeder_cross_code[i] <- x$MotherCode[i]
+          }
+        }
+        #mother code is before the underscore, father code is after the underscore
+        x$MotherCode[i] <- unlist(strsplit(x$breeder_cross_code[i], split = '_', fixed=TRUE))[1]
+        x$FatherCode[i] <- unlist(strsplit(x$breeder_cross_code[i], split = '_', fixed=TRUE))[2]
+      }
+      #if the breeder_cross_code is formatted like this (eg. T01/i/don't/know)
+      if(slashCount[i]==3) {
+        temp <- x$breeder_cross_code[i]
+        #codes like those are control types, we'll tag them as control, with the full breeder_cross_code
+        x$MotherCode[i] <- "control_"
+        x$FatherCode[i] <- temp
+        x$breeder_cross_code[i] <- paste(x$MotherCode[i], x$FatherCode[i], sep = "")
+        #not flipping this variable would trigger the next if statement, formatting this code differently, we don't want that
+        underscoreCount[i] <- 1
+      }
+      #if the breeder_cross_code is formatted like this (eg. HO515)
+      if(underscoreCount[i] == 0) {
+        #strip the code apart by character type, mother code uses letters, father code uses numbers, by convention, there may be some outliers though
+        x$MotherCode[i] <- as.character(str_extract(x$breeder_cross_code[i], "[aA-zZ]+"))
+        x$FatherCode[i] <- as.character(str_extract(x$breeder_cross_code[i], "[0-9]+"))
+        x$breeder_cross_code[i] <- paste(x$MotherCode[i], "_", x$FatherCode[i], sep = "")
+      }
+    }
+    return(x)
+  }
+  
+  meatAndBeans <- function(dat){
+    #drops unneeded columns and masks brcrcodes with counts for certain special characters, to clean the codes into a single way of input (XX_123) in the best we can
+    testParents <- cleanFile(dat)
+    output$overallStats <- renderText(dat)
+    # #each rows survival rate is calculated
+    # overallSurvival <- overallSurvival(testParents)
+    # #let's chuck the same table into all the other output, we'll format them differently in the output
+    # testMothers <- testFathers <- testParentsVerbaitum <- testParents <- aggregate(cbind(Planted, nonPsa, PsaDeaths) ~ BrCrCode+MotherCode+FatherCode+survivalrate, data = testParents, FUN = sum)
+    # #the fix for things like (rOJ _M101) space and underscore in the same code
+    # testParents <- doubleUnderscoreCheck(testParents, testMothers, testFathers, underscoreCount)
+    # #combination table calculation for survival rate
+    # testParentsVerbaitum <- verbatimSanity(testParentsVerbaitum)
+    # #we use the global rowCount variable to check for when we omit everything
+    # rowCount <<- length(testParentsVerbaitum$BrCrCode)
+    # #synopsis of the data inputted
+    # output$overallStats <- renderText(paste("In this block, ", sum(testParents$Planted), " plants were planted, and ", sum(testParents$PsaDeaths), " plants surcumb to PSA disease. ", sum(testParents$nonPsa), " individual plants died of non PSA related issues. This is a survival rate of ~", overallSurvival, "%", sep = ""))
+    # #output and download link for combination data table
+    # output$x1 = DT::renderDataTable(testParentsVerbaitum, server = FALSE, filter = "bottom")
+    # output$x5 = downloadHandler('parents-filtered.csv', content = function(file) {
+    #   s = input$x1_rows_all
+    #   write.csv(testParentsVerbaitum[s, , drop = FALSE], file)
+    # })
+    # #output and download link for mothers data table
+    # testMothers <- creationTable(testMothers, testParents$MotherCode)
+    # output$x2 = DT::renderDataTable(testMothers, server = FALSE, filter = "bottom")
+    # output$x6 = downloadHandler('mothers-filtered.csv', content = function(file) {
+    #   s = input$x2_rows_all
+    #   write.csv(testMothers[s, , drop = FALSE], file)
+    # })
+    # #output and download link for fathers data table
+    # testFathers <- creationTable(testFathers, testParents$FatherCode)
+    # output$x3 = DT::renderDataTable(testFathers, server = FALSE, filter = "bottom")
+    # output$x7 = downloadHandler('fathers-filtered.csv', content = function(file) {
+    #   s = input$x3_rows_all
+    #   write.csv(testFathers[s, , drop = FALSE], file)
+    # })
+    # #output and download link for 2D data table
+    # twoDtableDF <- twoDTableCreation(testMothers, testFathers, testParents, testParentsVerbaitum)
+    # output$x4 = DT::renderDataTable(twoDtableDF, server = FALSE)
+    # output$x8 = downloadHandler('overall2dmatrix.csv', content = function(file) {
+    #   s = input$x4_rows_all
+    #   write.csv(twoDtableDF[s, , drop = FALSE], file)
+    # })
+    
+  }
   
   #whenever the output changes, we run the function to change the output
   output$contents = renderTable({
     # if (controlVar$fileUploaded || controlVar$outputTable){
     #   print(dat)
     # }
+    meatAndBeans(dat)
+    print(dat)
   })
   
 })
