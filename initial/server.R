@@ -29,10 +29,8 @@ shinyServer(function(input, output, session) {
     #read in file data using fread to a data.frame, so we can use in program
     dat <<- fread(inFile$datapath)
     #a small fix for those cells of breeder_cross_code with nothing contained, let's use group_code instead!
-    for(i in 1:length(dat$breeder_cross_code)){
-      if(dat$breeder_cross_code[i] == ""){
-        dat$breeder_cross_code[i] <<- gsub("\\.", "_", dat$group_code[i])
-      }
+    if(dat$breeder_cross_code == ""){
+      dat$breeder_cross_code <<- gsub("\\.", "_", dat$group_code)
     }
     #we will interchange inbetween these two, always good to keep a clean backup of the table once we begin messing with the other
     omitAllCodesFix <<- dat
@@ -41,6 +39,11 @@ shinyServer(function(input, output, session) {
     if(!is.data.frame(dat))
       return(dat)
     controlVar$fileUploaded <- TRUE
+    start.time <- Sys.time()
+    meatAndBeans(dat)
+    end.time <- Sys.time()
+    time.taken <- end.time - start.time
+    print(time.taken)
   })
   
   observeEvent(input$clearOmission, {
@@ -70,11 +73,13 @@ shinyServer(function(input, output, session) {
   cleanFile <- function(dat){
     #grab the columns that matter for our analysis
     testParents <- mutate(select(dat, breeder_cross_code, Concept, data_type, harvest_dm), MotherCode = '', FatherCode = '')
+    #cbind is no good, please review
+    #testParents <- cbind(harvest_dm, ~ breeder_cross_code+Concept+data_type, data = dat, FUN = sum)
     #logging the special features of all the various formats of brcrcodes, needed for formatting them in the correct way for output
     slashCount <- str_count(testParents$breeder_cross_code, '/')
     underscoreCount <- str_count(testParents$breeder_cross_code, '_')
     spaceCheck <- str_count(testParents$breeder_cross_code, ' ')
-    testParents <- cleanBrCrCodeInFile(testParents, slashCount, underscoreCount, spaceCheck)
+    testParents <- cleanbreeder_cross_codeInFile(testParents, slashCount, underscoreCount, spaceCheck)
     #we must make these columns contents as numeric, otherwise we cannot perform math on them
     testParents$harvest_dm <- as.numeric(testParents$harvest_dm)
     return(testParents)
@@ -131,7 +136,9 @@ shinyServer(function(input, output, session) {
   meatAndBeans <- function(dat){
     #drops unneeded columns and masks brcrcodes with counts for certain special characters, to clean the codes into a single way of input (XX_123) in the best we can
     testParents <- cleanFile(dat)
-    output$overallStats <- renderText(dat)
+    output$x1 = DT::renderDataTable(testParents, server = FALSE, filter = "bottom")
+    #why cannot print out anything from dat?!
+    #output$overallStats <- renderText(dat)
     # #each rows survival rate is calculated
     # overallSurvival <- overallSurvival(testParents)
     # #let's chuck the same table into all the other output, we'll format them differently in the output
@@ -180,7 +187,6 @@ shinyServer(function(input, output, session) {
     #   print(dat)
     # }
     meatAndBeans(dat)
-    print(dat)
   })
   
 })
