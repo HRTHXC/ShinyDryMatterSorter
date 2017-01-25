@@ -73,25 +73,42 @@ shinyServer(function(input, output, session) {
   cleanFile <- function(dat){
     #grab the columns that matter for our analysis
     testParents <- mutate(select(dat, breeder_cross_code, Concept, data_type, harvest_dm), MotherCode = '', FatherCode = '')
-    #cbind is no good, please review
+    testParents <- testParents[grep("Green", testParents$Concept), ]
+    testParents <- testParents[grep("Destructive", testParents$data_type), ]
+    testParents <- testParents[!(is.na(testParents$breeder_cross_code) | testParents$breeder_cross_code==""), ]
+    testParents <- aggregate(harvest_dm ~ breeder_cross_code, data = testParents, FUN = "mean")
+    testParents$harvest_dm <- round(testParents$harvest_dm, digits = 2)
     #testParents <- cbind(harvest_dm, ~ breeder_cross_code+Concept+data_type, data = dat, FUN = sum)
     #logging the special features of all the various formats of brcrcodes, needed for formatting them in the correct way for output
     slashCount <- str_count(testParents$breeder_cross_code, '/')
     underscoreCount <- str_count(testParents$breeder_cross_code, '_')
     spaceCheck <- str_count(testParents$breeder_cross_code, ' ')
-    testParents <- cleanbreeder_cross_codeInFile(testParents, slashCount, underscoreCount, spaceCheck)
+    hyphenCheck <- str_count(testParents$breeder_cross_code, '-')
+    testParents <- cleanbreeder_cross_codeInFile(testParents, slashCount, underscoreCount, spaceCheck, hyphenCheck)
     #we must make these columns contents as numeric, otherwise we cannot perform math on them
     testParents$harvest_dm <- as.numeric(testParents$harvest_dm)
     return(testParents)
   }
   
-  cleanbreeder_cross_codeInFile <- function(x, slashCount, underscoreCount, spaceCheck){
+  cleanbreeder_cross_codeInFile <- function(x, slashCount, underscoreCount, spaceCheck, hyphenCheck){
     #for all the rows in our table
     for(i in 1:(dim(x)[1])){
+      if(hyphenCheck[i] == 1){
+        print(x$breeder_cross_code[i])
+        x$breeder_cross_code[i] <- gsub("-", "_", x$breeder_cross_code[i])
+        x$MotherCode[i] <- as.character(str_extract(x$breeder_cross_code[i], "[aA-zZ]+"))
+        x$FatherCode[i] <- as.character(str_extract(x$breeder_cross_code[i], "[0-9]+"))
+        underscoreCount[i] <- 1
+        print(x$breeder_cross_code[i])
+      }
       #if the breeder_cross_code is formatted like this (eg. ZI 343)
       if(spaceCheck[i]==1){
         #we drop the space, will be picked up by underscorecount later on
         x$breeder_cross_code[i] <- gsub(" ", "", x$breeder_cross_code[i])
+      }
+      if(underscoreCount[i] == 1){
+        x$MotherCode[i] <- unlist(strsplit(x$breeder_cross_code[i], split = '_', fixed=TRUE))[1]
+        x$FatherCode[i] <- unlist(strsplit(x$breeder_cross_code[i], split = '_', fixed=TRUE))[2]
       }
       #if the breeder_cross_code is formatted like this (eg. cyb_476/1)
       if(slashCount[i]==1) {
@@ -135,12 +152,24 @@ shinyServer(function(input, output, session) {
   
   meatAndBeans <- function(dat){
     #drops unneeded columns and masks brcrcodes with counts for certain special characters, to clean the codes into a single way of input (XX_123) in the best we can
-    testParents <- cleanFile(dat)
-    output$x1 = DT::renderDataTable(testParents, server = FALSE, filter = "bottom")
+    testParentsVerbaitum <- testParents <- cleanFile(dat)
+    drops <- c("MotherCode", "FatherCode")
+    testParentsVerbaitum <- testParentsVerbaitum[ , !(names(testParentsVerbaitum) %in% drops)]
+    output$x1 = DT::renderDataTable(testParentsVerbaitum, server = FALSE, filter = "bottom")
+    #output and download link for combination data table
+    output$x5 = downloadHandler('parents-drymatter.csv', content = function(file) {
+      s = input$x1_rows_all
+      write.csv(testParents[s, , drop = FALSE], file)
+    })
+    testMothers <- select(testParents, MotherCode, harvest_dm)
+    testMothers <- aggregate(harvest_dm ~ MotherCode, data = testMothers, FUN = "mean")
+    testMothers$harvest_dm <- round(testMothers$harvest_dm, digits = 2)
+    testFathers <- select(testParents, FatherCode, harvest_dm)
+    testFathers <- aggregate(harvest_dm ~ FatherCode, data = testFathers, FUN = "mean")
+    testFathers$harvest_dm <- round(testFathers$harvest_dm, digits = 2)
+    
     #why cannot print out anything from dat?!
     #output$overallStats <- renderText(dat)
-    # #each rows survival rate is calculated
-    # overallSurvival <- overallSurvival(testParents)
     # #let's chuck the same table into all the other output, we'll format them differently in the output
     # testMothers <- testFathers <- testParentsVerbaitum <- testParents <- aggregate(cbind(Planted, nonPsa, PsaDeaths) ~ BrCrCode+MotherCode+FatherCode+survivalrate, data = testParents, FUN = sum)
     # #the fix for things like (rOJ _M101) space and underscore in the same code
@@ -149,28 +178,20 @@ shinyServer(function(input, output, session) {
     # testParentsVerbaitum <- verbatimSanity(testParentsVerbaitum)
     # #we use the global rowCount variable to check for when we omit everything
     # rowCount <<- length(testParentsVerbaitum$BrCrCode)
-    # #synopsis of the data inputted
-    # output$overallStats <- renderText(paste("In this block, ", sum(testParents$Planted), " plants were planted, and ", sum(testParents$PsaDeaths), " plants surcumb to PSA disease. ", sum(testParents$nonPsa), " individual plants died of non PSA related issues. This is a survival rate of ~", overallSurvival, "%", sep = ""))
-    # #output and download link for combination data table
-    # output$x1 = DT::renderDataTable(testParentsVerbaitum, server = FALSE, filter = "bottom")
-    # output$x5 = downloadHandler('parents-filtered.csv', content = function(file) {
-    #   s = input$x1_rows_all
-    #   write.csv(testParentsVerbaitum[s, , drop = FALSE], file)
-    # })
     # #output and download link for mothers data table
     # testMothers <- creationTable(testMothers, testParents$MotherCode)
-    # output$x2 = DT::renderDataTable(testMothers, server = FALSE, filter = "bottom")
-    # output$x6 = downloadHandler('mothers-filtered.csv', content = function(file) {
-    #   s = input$x2_rows_all
-    #   write.csv(testMothers[s, , drop = FALSE], file)
-    # })
+    output$x2 = DT::renderDataTable(testMothers, server = FALSE, filter = "bottom")
+    output$x6 = downloadHandler('mothers-filtered.csv', content = function(file) {
+      s = input$x2_rows_all
+      write.csv(testMothers[s, , drop = FALSE], file)
+    })
     # #output and download link for fathers data table
     # testFathers <- creationTable(testFathers, testParents$FatherCode)
-    # output$x3 = DT::renderDataTable(testFathers, server = FALSE, filter = "bottom")
-    # output$x7 = downloadHandler('fathers-filtered.csv', content = function(file) {
-    #   s = input$x3_rows_all
-    #   write.csv(testFathers[s, , drop = FALSE], file)
-    # })
+    output$x3 = DT::renderDataTable(testFathers, server = FALSE, filter = "bottom")
+    output$x7 = downloadHandler('fathers-filtered.csv', content = function(file) {
+      s = input$x3_rows_all
+      write.csv(testFathers[s, , drop = FALSE], file)
+    })
     # #output and download link for 2D data table
     # twoDtableDF <- twoDTableCreation(testMothers, testFathers, testParents, testParentsVerbaitum)
     # output$x4 = DT::renderDataTable(twoDtableDF, server = FALSE)

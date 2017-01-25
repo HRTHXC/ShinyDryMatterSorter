@@ -1,0 +1,18 @@
+group_code,breeder,breeder_cross_code,eval_cat,Concept,Funding,state,Fruit count,Fruit Load,harvest_date,tray_number,fruit_left,fruit_harvested,All trays Quanity,total thrown,# rots thrown (12wk?),# softs thown (12wks?),Date,ave_frtWgt_harvest,fruitCount_total,failed_thrshld,breeder_response,ave_frtWgt_total,data_type,harvest_brix,harvest_dm
+K10.35-02-12b,AS,AK28,ZG_AS,Green,Commercial,Culled,14,2,19/05/2016,1605280,2,3,,,,,,105.23,4,Dry Matter (%),Cull,104.93,Destructive,9,14.34
+K10.35-02-12e,AS,AK28,ZG_AS,Green,Commercial,Culled,11,2,15/06/2016,1609963,2,8,6,,,,,110,9,,,111.74,Predicted,7.96,15.31719573
+K10.35-02-13g,AS,AS09-03,ZG_AS,Green,Commercial,Culled,12,2,1/06/2016,1607206,9,9,,,,,,89.48,11,Fruit Weight (g),Cull,90.48,Destructive,8.9,
+K10.35-03-02f,AS,AK26,ZG_AS,Green,Commercial,Culled,25,2,7/06/2016,1607873,14,14,,,,,,70.42,22,Fruit Weight (g),Cull,72.5,Destructive,8.6,15.95
+K10.35-03-02i,AS,AK26,ZG_AS,Green,Commercial,Culled,58,3,7/06/2016,1607876,24,26,,,,,,94.95,47,Dry Matter (%),Cull,98.7,Destructive,9.23,16.18
+K10.35-03-04d,AS,AK28,ZG_AS,Green,Commercial,Culled,6,1,15/06/2016,1609964,0,1,1,,,,,190,1,,,190,Predicted,9.3,15.84918414
+K10.35-03-04k,AS,AK28,ZG_AS,Green,Commercial,Culled,17,2,12/05/2016,1604245,7,7,,,,,,96.89,10,Dry Matter (%),Cull,94.57,Destructive,10.7,13.29
+K10.35-03-06i,AS,AK27,ZG_AS,Green,Commercial,Culled,22,2,24/05/2016,1605858,11,11,,,,,,97.73,16,Dry Matter (%),Cull,101.75,Destructive,10.1,13.78
+K10.35-03-07d,AS,,,,,,,,,,,,,,,,,,,,,,,,
+K10.35-03-08o,AS,A6-06,ZG_AS,Green,Commercial,Culled,8,1,1/06/2016,1607211,1,2,,,,,,84.15,2,Fruit Weight (g),Cull,84.15,Predicted,8.83,14.31494934
+K10.35-03-14g,AS,A6-06,ZG_AS,Green,Commercial,Culled,18,2,1/06/2016,,,11,,,,,,88.52,13,Fruit Weight (g),Cull,89.89,Destructive,8.1,12.59
+K10.35-04-06g,AS,AK28,ZG_AS,Green,Commercial,Culled,34,3,10/06/2016,1608634,0,4,4,,,,,113.72,28,,,114.11,Predicted,9.62,15.07911232
+K10.35-04-16k,AS,A6-06,ZG_AS,Green,Commercial,Culled,11,2,10/06/2016,1608634,0,4,3,1,1,0,30-Aug-16,99.78,5,,,96.18,Predicted,8.18,13.72281874
+K10.35-05-03m,AS,AK28,ZG_AS,Green,Commercial,Culled,9,1,15/06/2016,1609965,0,9,6,3,3,0,6-Sep-16,157.78,9,,,157.78,Predicted,7.24,15.30523557
+K10.35-06-06i,AS,AK28,ZG_AS,Green,Commercial,Culled,2,0.5,,,,,,,,,,,,,,,,,
+K10.35-06-06m,AS,AK28,ZG_AS,Green,Commercial,Culled,7,1,10/06/2016,1608631,7,7,,,,,,87.76,7,Fruit Weight (g),Cull,87.76,Predicted,9.78,16.83260692
+K10.35-06-08j,AS,AK27,ZG_AS,Green,Commercial,Culled,16,2,19/05/2016,1605279,2,10,8,,,,,98.31,14,,,97.02,Destructive,8.8,17.31
