@@ -150,11 +150,59 @@ shinyServer(function(input, output, session) {
     return(x)
   }
   
+  twoDTableCreation <- function(testMothers, testFathers, testParents, testParentsVerbaitum){
+    #the 2D table is created in here, special techniques must be used, a vector and logging where the survival rate should be indexed
+    #make a blank matrix the size of mothercode x fathercode counts
+    twoDtable <- matrix(c(""), nrow=length(testMothers$MotherCode), ncol=length(testFathers$FatherCode))
+    #we set the names of the rows and columns to the mother and father codes
+    rownames(twoDtable) <- testMothers$MotherCode
+    colnames(twoDtable) <- testFathers$FatherCode
+    #counter variables help with check all combinations of codes to find matches that related to the 2D table
+    l <- 1
+    m <- 0
+    #for the amount of combination codes that we have
+    for(i in 1:length(testParents$breeder_cross_code)){
+      #mothercodefound refers to the y position of the cell in the 2d table
+      motherCodeFound <- fatherCodeFound <- 0
+      #find the code that matches Lth mother code
+      for(j in 1:length(testMothers$MotherCode)){
+        #if those two codes match
+        if(grepl(testMothers$MotherCode[j], testParents$MotherCode[l])){
+          #the number we receive in the end is y position in the 2d table for the survival rate
+          motherCodeFound <- j
+          break
+        }
+      }
+      #find the code that matches Kth mother code
+      for(k in 1:length(testFathers$FatherCode)){
+        #if those two codes match
+        if(grepl(testFathers$FatherCode[k], testParents$FatherCode[l])){
+          #the number we receive in the end is x position in the 2d table for the survival rate
+          fatherCodeFound <- k
+          m <- m + 1
+          break
+        }
+      }
+      #find the code that matches Nth mother code
+      for(n in 1:length(testParentsVerbaitum$breeder_cross_code)){
+        #if those two codes match
+        if(grepl(testParentsVerbaitum$breeder_cross_code[n], testParents$breeder_cross_code[i])){
+          twoDtable[motherCodeFound, fatherCodeFound] = paste(testParentsVerbaitum$harvest_dm[n])
+          break
+        }
+      }
+      l <- l + 1
+    }
+    #our table has now be created, we can use it in our output
+    twoDtableDF <- data.frame(twoDtable)
+    return(twoDtableDF)
+  }
+  
   meatAndBeans <- function(dat){
     #drops unneeded columns and masks brcrcodes with counts for certain special characters, to clean the codes into a single way of input (XX_123) in the best we can
     testParentsVerbaitum <- testParents <- cleanFile(dat)
-    drops <- c("MotherCode", "FatherCode")
-    testParentsVerbaitum <- testParentsVerbaitum[ , !(names(testParentsVerbaitum) %in% drops)]
+    # drops <- c("MotherCode", "FatherCode")
+    # testParentsVerbaitum <- testParentsVerbaitum[ , !(names(testParentsVerbaitum) %in% drops)]
     output$x1 = DT::renderDataTable(testParentsVerbaitum, server = FALSE, filter = "bottom")
     #output and download link for combination data table
     output$x5 = downloadHandler('parents-drymatter.csv', content = function(file) {
@@ -167,7 +215,6 @@ shinyServer(function(input, output, session) {
     testFathers <- select(testParents, FatherCode, harvest_dm)
     testFathers <- aggregate(harvest_dm ~ FatherCode, data = testFathers, FUN = "mean")
     testFathers$harvest_dm <- round(testFathers$harvest_dm, digits = 2)
-    
     #why cannot print out anything from dat?!
     #output$overallStats <- renderText(dat)
     # #let's chuck the same table into all the other output, we'll format them differently in the output
@@ -181,24 +228,24 @@ shinyServer(function(input, output, session) {
     # #output and download link for mothers data table
     # testMothers <- creationTable(testMothers, testParents$MotherCode)
     output$x2 = DT::renderDataTable(testMothers, server = FALSE, filter = "bottom")
-    output$x6 = downloadHandler('mothers-filtered.csv', content = function(file) {
+    output$x6 = downloadHandler('mothers-drymatter.csv', content = function(file) {
       s = input$x2_rows_all
       write.csv(testMothers[s, , drop = FALSE], file)
     })
     # #output and download link for fathers data table
     # testFathers <- creationTable(testFathers, testParents$FatherCode)
     output$x3 = DT::renderDataTable(testFathers, server = FALSE, filter = "bottom")
-    output$x7 = downloadHandler('fathers-filtered.csv', content = function(file) {
+    output$x7 = downloadHandler('fathers-drymatter.csv', content = function(file) {
       s = input$x3_rows_all
       write.csv(testFathers[s, , drop = FALSE], file)
     })
-    # #output and download link for 2D data table
-    # twoDtableDF <- twoDTableCreation(testMothers, testFathers, testParents, testParentsVerbaitum)
-    # output$x4 = DT::renderDataTable(twoDtableDF, server = FALSE)
-    # output$x8 = downloadHandler('overall2dmatrix.csv', content = function(file) {
-    #   s = input$x4_rows_all
-    #   write.csv(twoDtableDF[s, , drop = FALSE], file)
-    # })
+    #output and download link for 2D data table
+    twoDtableDF <- twoDTableCreation(testMothers, testFathers, testParents, testParentsVerbaitum)
+    output$x4 = DT::renderDataTable(twoDtableDF, server = FALSE)
+    output$x8 = downloadHandler('overall2dmatrixdrymatter.csv', content = function(file) {
+      s = input$x4_rows_all
+      write.csv(twoDtableDF[s, , drop = FALSE], file)
+    })
     
   }
   
