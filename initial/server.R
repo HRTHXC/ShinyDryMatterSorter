@@ -56,6 +56,9 @@ shinyServer(function(input, output, session) {
 
   observeEvent(input$tableFilter, {
     #at any point where your total number of omissions don't match the count of rows in the table you use
+    print(length(input$tableFilter))
+    print(rowCount)
+    print("----")
     if(length(input$tableFilter) != rowCount){
       #keep omitting rows
       dat <- subset(omitAllCodesFix, !(breeder_cross_code %in% input$tableFilter))
@@ -88,6 +91,7 @@ shinyServer(function(input, output, session) {
     testParents$harvest_dm <- as.numeric(testParents$harvest_dm)
     if(controlVar$fileUploaded == FALSE){
       omitAllCodesFix <<- testParents
+      rowCount <<- length(testParents$breeder_cross_code)
       currentOmission <<- updateSelectizeInput(session, 'tableFilter', choices = omitAllCodesFix$breeder_cross_code)
       controlVar$fileUploaded == TRUE
     }
