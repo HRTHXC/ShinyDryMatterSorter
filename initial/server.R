@@ -56,9 +56,6 @@ shinyServer(function(input, output, session) {
 
   observeEvent(input$tableFilter, {
     #at any point where your total number of omissions don't match the count of rows in the table you use
-    print(length(input$tableFilter))
-    print(rowCount)
-    print("----")
     if(length(input$tableFilter) != rowCount){
       #keep omitting rows
       dat <- subset(omitAllCodesFix, !(breeder_cross_code %in% input$tableFilter))
@@ -95,7 +92,6 @@ shinyServer(function(input, output, session) {
       currentOmission <<- updateSelectizeInput(session, 'tableFilter', choices = omitAllCodesFix$breeder_cross_code)
       controlVar$fileUploaded == TRUE
     }
-    print(testParents)
     return(testParents)
   }
   
@@ -174,7 +170,7 @@ shinyServer(function(input, output, session) {
       #find the code that matches Lth mother code
       for(j in 1:length(testMothers$MotherCode)){
         #if those two codes match
-        if(grepl(testMothers$MotherCode[j], testParents$MotherCode[l])){
+        if(grepl(paste("^", testMothers$MotherCode[j], "$", sep=""), testParents$MotherCode[l])){
           #the number we receive in the end is y position in the 2d table for the survival rate
           motherCodeFound <- j
           break
@@ -183,7 +179,7 @@ shinyServer(function(input, output, session) {
       #find the code that matches Kth mother code
       for(k in 1:length(testFathers$FatherCode)){
         #if those two codes match
-        if(grepl(testFathers$FatherCode[k], testParents$FatherCode[l])){
+        if(grepl(paste("^", testFathers$FatherCode[k], "$", sep=""), testParents$FatherCode[l])){
           #the number we receive in the end is x position in the 2d table for the survival rate
           fatherCodeFound <- k
           m <- m + 1
@@ -193,11 +189,12 @@ shinyServer(function(input, output, session) {
       #find the code that matches Nth mother code
       for(n in 1:length(testParents$breeder_cross_code)){
         #if those two codes match
-        if(grepl(testParentsVerbaitum$breeder_cross_code[n], testParents$breeder_cross_code[i])){
+        if(grepl(paste("^", testParentsVerbaitum$breeder_cross_code[n], "$", sep=""), testParents$breeder_cross_code[i])){
           twoDtable[motherCodeFound, fatherCodeFound] = paste(testParents$harvest_dm[n])
           break
         }
       }
+      print(paste("[", motherCodeFound, ",", fatherCodeFound, "]", sep=""))
       l <- l + 1
     }
     #our table has now be created, we can use it in our output
